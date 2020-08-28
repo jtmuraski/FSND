@@ -91,7 +91,17 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
-
+  @app.route("/questions/<int: questions_id>", methods-["DELETE"])
+  def delete_question(question_id):
+    try:
+      selectedQuestion = Question.query.get(question_id)
+      selectedQuestion.delete()
+      return jsonify({
+        'success': True,
+        'deleted': question_id
+      })
+    except:
+      abort(422)
   '''
   @TODO: 
   Create an endpoint to POST a new question, 
@@ -102,6 +112,52 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
   '''
+  @app.route("/questions", methods=["POST"])
+  def addQuestion():
+    questionText = body.get_json()
+    if questionText.get('searchTerm'):
+      searchText = questionText.get('searchTerm')
+      searchResult = Question.query.filter(Question.question.ilike(f'%{questionText}%')).all()
+
+      #Abort if no results are found
+      if len(searchResult) == 0:
+        abort(404)
+      
+      paginate = paginate_questions(request, selection)
+      totalCount = len(Question.query.all())
+      return jsonify({
+        'success': True,
+        'question': paginate,
+        'total_questions': totalCount
+      })
+
+    else:
+      #Get the data for the new question
+      newQuestion = body.get('question')
+      newAnswer = body.get('answer')
+      newDifficulty = body.get('difficulty')
+      newCateogry = body.get('category')
+
+      if ((newQuestion is None) or (newAnswer is None) or (newDifficulty is None) or (newCategory is None)):
+        abort(422)
+
+      try:
+        questionToLoad = Question(question=newQuestion, answer=newAnswer, difficulty=newDifficulty, category=newCategory)
+        questionToLoad.insert()
+
+        #setup all questions
+        selection = Question.query.order_by(Question.id).all()
+        questionList = paginate_questions(request, selection)
+        questionCount = len(Question.query.all())
+
+        #send the questions back
+        return jsonify({
+          'success': True,
+          'created': question_id,
+          'question': questionToLoad.question,
+          'questions': questionList,
+          'total_questions': questionCount
+        })
 
   '''
   @TODO: 
@@ -113,7 +169,7 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
-
+#See above
   '''
   @TODO: 
   Create a GET endpoint to get questions based on category. 
@@ -122,7 +178,19 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
-
+  @app.route('/categories/<int:category_id')
+  def get_questions_category(categoryID):
+    try:
+      questionList = Question.query.filter(Question.category == str(categoryID)).all()
+      questionCount = len(questionList)
+      return jsonify ({
+        'success': True,
+        'questions': [question.format() for question in questionList],
+        'total_questions': questionCount,
+        'current_category': categoryID
+      })
+    except:
+      abort(404)
 
   '''
   @TODO: 
@@ -135,7 +203,9 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
-
+  @app.route('/quizzes', methods-['POST'])
+  def take_quiz():
+    
   '''
   @TODO: 
   Create error handlers for all expected errors 
