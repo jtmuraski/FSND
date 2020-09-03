@@ -203,9 +203,37 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
-  @app.route('/quizzes', methods-['POST'])
+  @app.route('/quizzes', methods=['POST'])
   def take_quiz():
+    body = request.get_json()
+    questionsAsked = body.get('previous_questions')
+    currentCategory = body.get('quiz_category')
+
+    #if cateogry or question isn't found, abort
+    if ((questionsAsked is None) or (currentCategory is None)):
+      abort(400)
+
+    if(currentCategory == 0):
+      questionsList = Question.query.all()
+    else:
+      questionsList = Question.query.filter_by(cateogry = currentCategory['id']).all()
     
+    questionCount = len(questionsList)
+
+    #Select a random question from the questions list pulled earlier
+    def pick_Random_Question():
+      return questionsList[random.randrange(0, questionCount, 1)]
+
+    #Make sure that a question doesn't get asked twice
+    def question_Used(questionToCheck):
+      questionCheck = False
+      for each in questionsAsked:
+        if (each == questionsAsked.id):
+          questionCheck = True
+      return questionCheck
+
+    
+
   '''
   @TODO: 
   Create error handlers for all expected errors 
